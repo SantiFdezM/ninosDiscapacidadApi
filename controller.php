@@ -10,6 +10,9 @@ if(empty($_POST)){
 $funcion = $_POST['funcion'];
 
 switch ($funcion) {
+	case 'testConnection':
+		echo testConnection();
+		break;
 	case 'login':
 		//echo login($_POST['nombre_usuario'], $_POST['password'], $_POST['nombre_dispositivo'], $_POST['os'], $_POST['guid']);
 		break;
