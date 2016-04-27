@@ -72,6 +72,12 @@ switch ($funcion) {
 	case 'verify_patient_username_exists':
 		echo verify_patient_username_exists($_POST['username'], $_POST['application_token']);
 		break;
+	case 'add_patient_parent':
+		echo add_patient_parent($_POST['id_patient'], $_POST['id_parent'], $_POST['application_token']);
+		break;
+	case 'add_patient_doctor':
+		echo add_patient_doctor($_POST['id_patient'], $_POST['id_doctor'], $_POST['application_token']);
+		break;
 	default:
 		echo json_encode(0);
 		break;

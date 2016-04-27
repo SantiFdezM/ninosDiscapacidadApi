@@ -107,6 +107,10 @@ function register_patient($name, $username, $password, $applicationToken, $docto
 		return json_encode(RegisterResult::create("Error the username ".$username." is already taken", false, ""));
 	}
 
+	if(!id_doctor_exists($doctor_id)){
+		return json_encode(RegisterResult::create("Doctor id doesn't exist", false, ""));
+	}
+
 	$pdo = Database::connect();
 	$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 	$pdo->beginTransaction();
@@ -289,10 +293,116 @@ function verify_patient_username_existsI($username){
 	Database::disconnect();
 
 	if($data == null){
-		return json_encode(VerifyResult::create("The username doesn't exist", false, $username));
+		return false;
 	}
 
-	return json_encode(VerifyResult::create("The username already exists", true, $username));
+	return true;
+}
+
+function add_patient_parent($id_patient, $id_parent, $applicationToken){
+	if(!verifyApplicationToken($applicationToken)){
+		return json_encode(RegisterResult::create("Application is not permited to do requests, invalid application token", false, ""));
+	}
+
+	if(!id_patient_exists($id_patient)){
+		return json_encode(RegisterResult::create("Patient id doesn't exist", false, ""));
+	}
+
+	if(!id_parent_exists($id_parent)){
+		return json_encode(RegisterResult::create("Parent id doesn't exist", false, ""));
+	}
+
+	$pdo = Database::connect();
+	$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	$pdo->beginTransaction();
+	try{
+		$pdo->exec("INSERT INTO patient_parent (id,id_patient, id_parent) VALUES(null,'$id_patient', '$id_parent')");
+		$pdo->commit();
+	}
+	catch(PDOException $e){
+		$pdo->rollback();
+		return json_encode(RegisterResult::create("Error in the server when registering parent to patient: ".$e->getMessage(), false, ""));
+	}
+
+	return json_encode(RegisterResult::create("The parent was added to patient successfuly", true, ""));
+
+}
+
+function add_patient_doctor($id_patient, $id_doctor, $applicationToken){
+	if(!verifyApplicationToken($applicationToken)){
+		return json_encode(RegisterResult::create("Application is not permited to do requests, invalid application token", false, ""));
+	}
+
+	if(!id_patient_exists($id_patient)){
+		return json_encode(RegisterResult::create("Patient id doesn't exist", false, ""));
+	}
+
+	if(!id_doctor_exists($id_doctor)){
+		return json_encode(RegisterResult::create("Doctor id doesn't exist", false, ""));
+	}
+
+	$pdo = Database::connect();
+	$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	$pdo->beginTransaction();
+	try{
+		$pdo->exec("INSERT INTO patient_doctor (id,id_patient, id_doctor) VALUES(null,'$id_patient', '$id_doctor')");
+		$pdo->commit();
+	}
+	catch(PDOException $e){
+		$pdo->rollback();
+		return json_encode(RegisterResult::create("Error in the server when registering doctor to patient: ".$e->getMessage(), false, ""));
+	}
+
+	return json_encode(RegisterResult::create("The doctor was added to patient successfuly", true, ""));
+
+}
+
+function id_patient_exists($id_patient){
+	$pdo = Database::connect();
+	$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	$sql = "SELECT id from patient where id = ?";
+	$q = $pdo->prepare($sql);
+	$q->execute(array($id_patient));
+	$data = $q->fetch(PDO::FETCH_ASSOC);
+	Database::disconnect();
+
+	if($data == null){
+		return false;
+	}
+
+	return true;
+}
+
+function id_parent_exists($id_parent){
+	$pdo = Database::connect();
+	$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	$sql = "SELECT id from user where id = ? and kind = 2";
+	$q = $pdo->prepare($sql);
+	$q->execute(array($id_parent));
+	$data = $q->fetch(PDO::FETCH_ASSOC);
+	Database::disconnect();
+
+	if($data == null){
+		return false;
+	}
+
+	return true;
+}
+
+function id_doctor_exists($id_doctor){
+	$pdo = Database::connect();
+	$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	$sql = "SELECT id from user where id = ? and kind = 1";
+	$q = $pdo->prepare($sql);
+	$q->execute(array($id_doctor));
+	$data = $q->fetch(PDO::FETCH_ASSOC);
+	Database::disconnect();
+
+	if($data == null){
+		return false;
+	}
+
+	return true;
 }
 
 ?>
