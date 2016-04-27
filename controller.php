@@ -13,8 +13,8 @@ switch ($funcion) {
 	case 'testConnection':
 		echo testConnection();
 		break;
-	case 'login':
-		//echo login($_POST['nombre_usuario'], $_POST['password'], $_POST['nombre_dispositivo'], $_POST['os'], $_POST['guid']);
+	case 'login_user':
+		echo login($_POST['username'], $_POST['password'], $_POST['application_token']);
 		break;
 	case 'logout':
 		//echo logout($_POST['token']);
