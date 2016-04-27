@@ -1,13 +1,11 @@
 <?php 
-	/* Este archivo contiene las funciones que controlan la sesion de un usuario, login, logout, verifySession */
-
-	function verifyApplicationToken($token){
+	function verifyGameToken($token){
 		if(strlen($token) != 40){
 			return false;
 		}
 		$pdo = Database::connect();
 		$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-		$sql = "SELECT id from applications where token = ?";
+		$sql = "SELECT id from games where token = ?";
 		$q = $pdo->prepare($sql);
 		$q->execute(array($token));
 		$data = $q->fetch(PDO::FETCH_ASSOC);
@@ -18,9 +16,9 @@
 		return true;
 	}
 
-	function login_user($user, $password, $applicationToken){
-	if(!verifyApplicationToken($applicationToken)){
-		return json_encode(LoginResult::create("Application is not permited to do requests, invalid application token", false, "", -1, ""));
+	function login_patient($user, $password, $gameToken){
+	if(!verifyGameToken($gameToken)){
+		return json_encode(LoginResult::create("Game is not permited to do requests, invalid game token", false, "", -1, ""));
 	}
 
 	$user = strtolower($user);
@@ -32,7 +30,7 @@
 
 	try{
 		$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-		$sql = "SELECT id, username, password, active, kind, name from user where username = ?";
+		$sql = "SELECT id, username, password, active, name from patient where username = ?";
 		$q = $pdo->prepare($sql);
 		$q->execute(array($user));
 		$data = $q->fetch(PDO::FETCH_ASSOC);
@@ -54,7 +52,7 @@
 
 		$token = getToken();
 		$id = $data['id'];
-		$res = LoginResult::createId("Login successful", true, $token, $data['kind'], $data['name'], $id);
+		$res = LoginResult::createId("Login successful", true, $token, -1, $data['name'], $id);
 	    Database::disconnect();
 	}
 	catch(PDOException $e){
@@ -70,7 +68,7 @@
 			return json_encode(LoginResult::create("There was an error on the server, try again", false, "", -1, ""));
 		}
 
-		$pdo->exec("UPDATE user set token = '$token' where id = '$id'");
+		$pdo->exec("UPDATE patient set token = '$token' where id = '$id'");
 		$pdo->commit();
 	}
 	catch(PDOException $e){
@@ -85,36 +83,49 @@
 	return json_encode($res);
 }
 
-/** 
-	Kind values:
-	- 1 for doctor 
-	- 2 for patient parent
-*/
-function register_user($name, $username, $mail, $cellphone, $password, $kind){
+function getPatientId($username){
+	$pdo = Database::connect();
+	$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	$sql = "SELECT id from patient where username = ?";
+	$q = $pdo->prepare($sql);
+	$q->execute(array($username));
+	$data = $q->fetch(PDO::FETCH_ASSOC);
+	Database::disconnect();
+	return $data['id'];
+}
+
+function register_patient($name, $username, $password, $applicationToken, $doctor_id){
+	if(!verifyApplicationToken($applicationToken)){
+		return json_encode(LoginResult::create("Application is not permited to do requests, invalid application token", false, "", -1, ""));
+	}
+
 	$username = strtolower($username);
 
-	$verifyResult = verify_user_username_existsI($username);
-	
+	$verifyResult = verify_patient_username_existsI($username);
+
 	if($verifyResult){
 		return json_encode(RegisterResult::create("Error the username ".$username." is already taken", false, ""));
 	}
 
+	$pdo = Database::connect();
+	$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	$pdo->beginTransaction();
+	
 	try{
-		$pdo = Database::connect();
-		$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-		$sql = "INSERT INTO user (id,name,username,mail,cellphone,password,active,token,kind) VALUES(?,?,?,?,?,?,?,?,?)";
-		$q = $pdo->prepare($sql);
-		$result = $q -> execute(array(null, $name, $username, $mail, $cellphone, sha1($password), 1, "", $kind));
-		Database::disconnect();
+		$pdo->exec("INSERT INTO patient (id,name,username,password,active,token) VALUES(null,'$name','$username',sha1('$password'),1,'')");
+		$id = getPatientId($username);
+		$pdo->exec("INSERT INTO patient_doctor (id,id_patient, id_doctor) VALUES(null,'$id', '$doctor_id')");
+		$pdo->commit();
 	}
 	catch(PDOException $e){
-		return json_encode(RegisterResult::create("Error in the server when registering user", false, ""));
+		$pdo->rollback();
+		return json_encode(RegisterResult::create("Error in the server when registering patient: ".$e->getMessage(), false, ""));
 	}
 
-	return json_encode(RegisterResult::create("The user was registered successful", true, ""));
+	return json_encode(RegisterResult::create("The patient was registered successful", true, ""));
 }
 
-function update_user($id, $name, $username, $mail, $cellphone, $password, $applicationToken){
+function update_patient($id, $name, $username, $password, $applicationToken){
 	if(!verifyApplicationToken($applicationToken)){
 		return json_encode(RegisterResult::create("Application is not permited to do requests, invalid application token", false, ""));
 	}
@@ -126,24 +137,24 @@ function update_user($id, $name, $username, $mail, $cellphone, $password, $appli
 	$pdo->beginTransaction();
 	
 	try{
-		$pdo->exec("UPDATE user set name = '$name', username = '$username', mail = '$mail', cellphone = '$cellphone', password = sha1('$password') where id = '$id'");
+		$pdo->exec("UPDATE patient set name = '$name', username = '$username', password = sha1('$password') where id = '$id'");
 		$pdo->commit();
 	}
 	catch(PDOException $e){
 		$pdo->rollback();
-		return json_encode(RegisterResult::create("Error in the server when updating user: ".$e->getMessage(), false, ""));
+		return json_encode(RegisterResult::create("Error in the server when updating patient: ".$e->getMessage(), false, ""));
 	}
-	return json_encode(RegisterResult::create("The user was updated successful", true, ""));
+	return json_encode(RegisterResult::create("The patient was updated successful", true, ""));
 }
 
-function verify_user_session($token, $applicationToken){
+function verify_patient_session($token, $gameToken){
 
-	if(!verifyApplicationToken($applicationToken)){
-		return json_encode(LoginResult::create("Application is not permited to do requests, invalid application token", false, "", -1, ""));
+	if(!verifyGameToken($gameToken)){
+		return json_encode(LoginResult::create("Game is not permited to do requests, invalid game token", false, "", -1, ""));
 	}
 
 	if(strlen($token) != 40){
-		return json_encode(LoginResult::create("Invalid user token", false, "", -1, ""));
+		return json_encode(LoginResult::create("Invalid patient token", false, "", -1, ""));
 	}
 
 	$pdo = Database::connect();
@@ -152,21 +163,21 @@ function verify_user_session($token, $applicationToken){
 	try{
 		$pdo = Database::connect();
 		$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-		$sql = "SELECT id, active, kind, name from user where token = ?";
+		$sql = "SELECT id, active, name from patient where token = ?";
 		$q = $pdo->prepare($sql);
 		$q->execute(array($token));
 		$data = $q->fetch(PDO::FETCH_ASSOC);
 		Database::disconnect();
 
 		if($data == null){
-			return json_encode(LoginResult::create("The user session token doesn't exists", false, "", -1, ""));
+			return json_encode(LoginResult::create("The patient session token doesn't exists", false, "", -1, ""));
 		}
 
 		if($data['active'] == 0){
-			return json_encode(LoginResult::create("The user is no longer active", false, "", -1, ""));
+			return json_encode(LoginResult::create("The patient is no longer active", false, "", -1, ""));
 		}
 
-		$res = LoginResult::createId("The session is valid", true, $token, $data['kind'], $data['name'], $data['id']);
+		$res = LoginResult::createId("The session is valid", true, $token, -1, $data['name'], $data['id']);
 	}
 	catch(PDOException $e){
 		return json_encode(LoginResult::create("There was an error on the server, try again: ".$e->getMessage(), false, "", -1, ""));
@@ -175,14 +186,14 @@ function verify_user_session($token, $applicationToken){
 	return json_encode($res);
 }
 
-function logout_user($token, $applicationToken){
+function logout_patient($token, $gameToken){
 
-	if(!verifyApplicationToken($applicationToken)){
-		return json_encode(LoginResult::create("Application is not permited to do requests, invalid application token", false, "", -1, ""));
+	if(!verifyGameToken($gameToken)){
+		return json_encode(LoginResult::create("Game is not permited to do requests, invalid game token", false, "", -1, ""));
 	}
 
 	if(strlen($token) != 40){
-		return json_encode(LoginResult::create("Invalid user token", false, "", -1, ""));
+		return json_encode(LoginResult::create("Invalid patient token", false, "", -1, ""));
 	}
 
 	$pdo = Database::connect();
@@ -190,7 +201,7 @@ function logout_user($token, $applicationToken){
 	$pdo->beginTransaction();
 	
 	try{
-		$pdo->exec("UPDATE user set token = '' where token = '$token'");
+		$pdo->exec("UPDATE patient set token = '' where token = '$token'");
 		$pdo->commit();
 	}
 	catch(PDOException $e){
@@ -198,10 +209,10 @@ function logout_user($token, $applicationToken){
 		return json_encode(LoginResult::create("There was an error on the server, try again: ".$e->getMessage(), false, "", -1, ""));
 	}
 
-	return json_encode(LoginResult::create("Logout from user successful", true, "", -1, ""));
+	return json_encode(LoginResult::create("Logout from patient successful", true, "", -1, ""));
 }
 
-function deactivate_user($username, $applicationToken){
+function deactivate_patient($username, $applicationToken){
 
 	if(!verifyApplicationToken($applicationToken)){
 		return json_encode(LoginResult::create("Application is not permited to do requests, invalid application token", false, "", -1, ""));
@@ -212,7 +223,7 @@ function deactivate_user($username, $applicationToken){
 	$pdo->beginTransaction();
 	
 	try{
-		$pdo->exec("UPDATE user set active = 0 where username = '$username'");
+		$pdo->exec("UPDATE patient set active = 0 where username = '$username'");
 		$pdo->commit();
 	}
 	catch(PDOException $e){
@@ -220,10 +231,11 @@ function deactivate_user($username, $applicationToken){
 		return json_encode(LoginResult::create("There was an error on the server, try again: ".$e->getMessage(), false, "", -1, ""));
 	}
 
-	return json_encode(LoginResult::create("User was deactivated correctly", true, "", -1, ""));
+	return json_encode(LoginResult::create("Patient was deactivated correctly", true, "", -1, ""));
 }
 
-function activate_user($username, $applicationToken){
+
+function activate_patient($username, $applicationToken){
 
 	if(!verifyApplicationToken($applicationToken)){
 		return json_encode(LoginResult::create("Application is not permited to do requests, invalid application token", false, "", -1, ""));
@@ -234,7 +246,7 @@ function activate_user($username, $applicationToken){
 	$pdo->beginTransaction();
 	
 	try{
-		$pdo->exec("UPDATE user set active = 1 where username = '$username'");
+		$pdo->exec("UPDATE patient set active = 1 where username = '$username'");
 		$pdo->commit();
 	}
 	catch(PDOException $e){
@@ -242,15 +254,16 @@ function activate_user($username, $applicationToken){
 		return json_encode(LoginResult::create("There was an error on the server, try again: ".$e->getMessage(), false, "", -1, ""));
 	}
 
-	return json_encode(LoginResult::create("User activated correctly", true, "", -1, ""));
+	return json_encode(LoginResult::create("Patient activated correctly", true, "", -1, ""));
 }
 
-function verify_user_username_exists($username, $applicationToken){
+function verify_patient_username_exists($username, $applicationToken){
+
 	$username = strtolower($username);
 
 	$pdo = Database::connect();
 	$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-	$sql = "SELECT id from user where username = ?";
+	$sql = "SELECT id from patient where username = ?";
 	$q = $pdo->prepare($sql);
 	$q->execute(array($username));
 	$data = $q->fetch(PDO::FETCH_ASSOC);
@@ -263,24 +276,23 @@ function verify_user_username_exists($username, $applicationToken){
 	return json_encode(VerifyResult::create("The username already exists", true, $username));
 }
 
-function verify_user_username_existsI($username){
-
+function verify_patient_username_existsI($username){
+	
 	$username = strtolower($username);
 
 	$pdo = Database::connect();
 	$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-	$sql = "SELECT id from user where username = ?";
+	$sql = "SELECT id from patient where username = ?";
 	$q = $pdo->prepare($sql);
 	$q->execute(array($username));
 	$data = $q->fetch(PDO::FETCH_ASSOC);
 	Database::disconnect();
 
 	if($data == null){
-		return false;
+		return json_encode(VerifyResult::create("The username doesn't exist", false, $username));
 	}
 
-	return true;
+	return json_encode(VerifyResult::create("The username already exists", true, $username));
 }
 
-	
 ?>
