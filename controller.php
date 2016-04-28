@@ -49,7 +49,7 @@ switch ($funcion) {
 		echo register_game($_POST['name'], $_POST['developer'], $_POST['mail']);
 		break;
 	case 'register_patient':
-		echo register_patient($_POST['name'], $_POST['username'], $_POST['password'], $_POST['application_token'], $_POST['doctor_id']);
+		echo register_patient($_POST['name'], $_POST['username'], $_POST['password'], $_POST['application_token'], $_POST['id_doctor']);
 		break;
 	case 'login_patient':
 		echo login_patient($_POST['username'], $_POST['password'], $_POST['game_token']);
@@ -77,6 +77,30 @@ switch ($funcion) {
 		break;
 	case 'add_patient_doctor':
 		echo add_patient_doctor($_POST['id_patient'], $_POST['id_doctor'], $_POST['application_token']);
+		break;
+	case 'add_game_patient_metric':
+		echo add_game_patient_metric($_POST['metric'], $_POST['id_patient'], $_POST['game_token'], $_POST['date'], $_POST['value']);
+		break;
+	case 'get_all_games':
+		echo get_all_games($_POST['application_token']);
+		break;
+	case 'get_all_patient_game_metrics':
+		echo get_all_patient_game_metrics($_POST['id_patient'],$_POST['id_game'],$_POST['application_token']);
+		break;
+	case 'get_all_patient_games':
+		echo get_all_patient_games($_POST['id_patient'],$_POST['application_token']);
+		break;
+	case 'get_patient_doctors':
+		echo get_patient_doctors($_POST['id_patient'],$_POST['application_token']);
+		break;
+	case 'get_patient_parents':
+		echo get_patient_parents($_POST['id_patient'],$_POST['application_token']);
+		break;
+	case 'get_all_doctor_patients':
+		echo get_all_doctor_patients($_POST['id_doctor'],$_POST['application_token']);
+		break;
+	case 'get_all_parent_patients':
+		echo get_all_parent_patients($_POST['id_parent'],$_POST['application_token']);
 		break;
 	default:
 		echo json_encode(0);

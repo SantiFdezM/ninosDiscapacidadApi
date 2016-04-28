@@ -111,7 +111,7 @@ function register_user($name, $username, $mail, $cellphone, $password, $kind){
 		return json_encode(RegisterResult::create("Error in the server when registering user", false, ""));
 	}
 
-	return json_encode(RegisterResult::create("The user was registered successful", true, ""));
+	return json_encode(LoginResult::createId("The user was registered successful", true, "", $kind, $name, getUserId($username)));
 }
 
 function update_user($id, $name, $username, $mail, $cellphone, $password, $applicationToken){
@@ -281,6 +281,24 @@ function verify_user_username_existsI($username){
 
 	return true;
 }
+
+function getUserId($username){
+
+	$pdo = Database::connect();
+	$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	$sql = "SELECT id from user where username = ?";
+	$q = $pdo->prepare($sql);
+	$q->execute(array($username));
+	$data = $q->fetch(PDO::FETCH_ASSOC);
+	Database::disconnect();
+
+	if($data == null){
+		return null;
+	}
+
+	return $data['id'];
+}
+
 
 	
 ?>
