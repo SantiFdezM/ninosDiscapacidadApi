@@ -6,8 +6,8 @@ Games can be developed with this API, they just need a token from the API in ord
 ### How to setup and install the platform for development
 
 ####Install XAMPP or setup manually LAMP in your computer
-Use this [guide](https://www.apachefriends.org/index.html) to install XAMPP
-Here you can find some [guides](https://www.linode.com/docs/websites/lamp/) on how to insall LAMP
+- Use this [guide](https://www.apachefriends.org/index.html) to install XAMPP
+- Here you can find some [guides](https://www.linode.com/docs/websites/lamp/) on how to insall LAMP
 
 ####Run and develope
 To run and develope for the REST API you need to do the following:
