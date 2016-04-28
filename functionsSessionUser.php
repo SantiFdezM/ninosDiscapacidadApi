@@ -152,7 +152,7 @@ function verify_user_session($token, $applicationToken){
 	try{
 		$pdo = Database::connect();
 		$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-		$sql = "SELECT id, active, kind, name from user where token = ?";
+		$sql = "SELECT id, active, kind, name from user where token = ? and active = 1";
 		$q = $pdo->prepare($sql);
 		$q->execute(array($token));
 		$data = $q->fetch(PDO::FETCH_ASSOC);
@@ -198,7 +198,7 @@ function logout_user($token, $applicationToken){
 		return json_encode(LoginResult::create("There was an error on the server, try again: ".$e->getMessage(), false, "", -1, ""));
 	}
 
-	return json_encode(LoginResult::create("Logout from user successful", true, "", -1, ""));
+	return json_encode(RegisterResult::create("Logout from user successful", true, ""));
 }
 
 function deactivate_user($username, $applicationToken){
@@ -220,7 +220,7 @@ function deactivate_user($username, $applicationToken){
 		return json_encode(LoginResult::create("There was an error on the server, try again: ".$e->getMessage(), false, "", -1, ""));
 	}
 
-	return json_encode(LoginResult::create("User was deactivated correctly", true, "", -1, ""));
+	return json_encode(RegisterResult::create("User was deactivated correctly", true, ""));
 }
 
 function activate_user($username, $applicationToken){
@@ -242,7 +242,7 @@ function activate_user($username, $applicationToken){
 		return json_encode(LoginResult::create("There was an error on the server, try again: ".$e->getMessage(), false, "", -1, ""));
 	}
 
-	return json_encode(LoginResult::create("User activated correctly", true, "", -1, ""));
+	return json_encode(RegisterResult::create("User activated correctly", true, ""));
 }
 
 function verify_user_username_exists($username, $applicationToken){

@@ -104,7 +104,7 @@
 			return json_encode(RegisterResult::create("Error in the server when registering game", false, ""));
 		}
 
-		return json_encode(RegisterResult::create("Game metric registered successfuly", true, ""));
+		return json_encode(RegisterResult::create("Game metric registered successfuly", true, $game_token));
 
 	}
 
@@ -210,7 +210,7 @@
 		try{
 			$pdo = Database::connect();
 			$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-			$sql = "SELECT g.id as id, name, developer, mail FROM games as g, game_metrics where id_patient = '$id_patient'
+			$sql = "SELECT DISTINCT g.id as id, name, developer, mail FROM games as g, game_metrics where id_patient = '$id_patient'
 					and id_game = g.id";
 			$data = $pdo->query($sql);
 			Database::disconnect();

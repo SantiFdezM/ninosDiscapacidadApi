@@ -213,7 +213,7 @@ function logout_patient($token, $gameToken){
 		return json_encode(LoginResult::create("There was an error on the server, try again: ".$e->getMessage(), false, "", -1, ""));
 	}
 
-	return json_encode(LoginResult::create("Logout from patient successful", true, "", -1, ""));
+	return json_encode(RegisterResult::create("Logout from patient successful", true, ""));
 }
 
 function deactivate_patient($username, $applicationToken){
@@ -235,7 +235,7 @@ function deactivate_patient($username, $applicationToken){
 		return json_encode(LoginResult::create("There was an error on the server, try again: ".$e->getMessage(), false, "", -1, ""));
 	}
 
-	return json_encode(LoginResult::create("Patient was deactivated correctly", true, "", -1, ""));
+	return json_encode(RegisterResult::create("Patient was deactivated correctly", true, ""));
 }
 
 
@@ -258,7 +258,7 @@ function activate_patient($username, $applicationToken){
 		return json_encode(LoginResult::create("There was an error on the server, try again: ".$e->getMessage(), false, "", -1, ""));
 	}
 
-	return json_encode(LoginResult::create("Patient activated correctly", true, "", -1, ""));
+	return json_encode(RegisterResult::create("Patient activated correctly", true, ""));
 }
 
 function verify_patient_username_exists($username, $applicationToken){
